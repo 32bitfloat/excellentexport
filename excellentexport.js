@@ -20,14 +20,14 @@
 var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
 var fromCharCode = String.fromCharCode;
 var INVALID_CHARACTER_ERR = (function () {
-        "use strict";
-        // fabricate a suitable error object
-        try {
-            document.createElement('$');
-        } catch (error) {
-            return error;
-        }
-    }());
+    "use strict";
+    // fabricate a suitable error object
+    try {
+        document.createElement('$');
+    } catch (error) {
+        return error;
+    }
+}());
 
 // encoder
 if (!window.btoa) {
@@ -97,6 +97,7 @@ ExcellentExport = (function() {
     var uri = {excel: 'data:application/vnd.ms-excel;base64,', csv: 'data:application/csv;base64,'};
     var template = {excel: '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>{table}</table></body></html>'};
     var csvDelimiter = ",";
+    var visibleTdsOnly = false;
     var csvNewLine = "\r\n";
     var base64 = function(s) {
         return window.btoa(window.unescape(encodeURIComponent(s)));
@@ -131,11 +132,21 @@ ExcellentExport = (function() {
     var tableToCSV = function(table) {
         var data = "";
         var i, j, row, col;
+
         for (i = 0; i < table.rows.length; i++) {
             row = table.rows[i];
+
+            if(visibleTdsOnly && row.style.display === "none"){
+                continue;
+            }
             for (j = 0; j < row.cells.length; j++) {
-                col = row.cells[j];
-                data = data + (j ? csvDelimiter : '') + fixCSVField(col.textContent.trim());
+
+                if(!visibleTdsOnly || row.cells[j].style.display !== "none"){
+                    col = row.cells[j];
+                    data = data + (j ? csvDelimiter : '') + fixCSVField(col.textContent.trim());
+                }
+
+
             }
             data = data + csvNewLine;
         }
@@ -144,21 +155,27 @@ ExcellentExport = (function() {
 
     var ee = {
         /** @expose */
-        excel: function(anchor, table, name) {
+        excel: function(anchor, table, name, visibleOnly) {
             table = get(table);
             var ctx = {worksheet: name || 'Worksheet', table: table.innerHTML};
             var hrefvalue = uri.excel + base64(format(template.excel, ctx));
             anchor.href = hrefvalue;
+            if (visibleOnly !== undefined && visibleOnly) {
+                visibleTdsOnly = visibleOnly;
+            }
             // Return true to allow the link to work
             return true;
         },
         /** @expose */
-        csv: function(anchor, table, delimiter, newLine) {
+        csv: function(anchor, table, delimiter, newLine, visibleOnly) {
             if (delimiter !== undefined && delimiter) {
                 csvDelimiter = delimiter;
             }
             if (newLine !== undefined && newLine) {
                 csvNewLine = newLine;
+            }
+            if (visibleOnly !== undefined && visibleOnly) {
+                visibleTdsOnly = visibleOnly;
             }
             table = get(table);
             var csvData = tableToCSV(table);
