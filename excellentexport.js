@@ -131,7 +131,7 @@ ExcellentExport = (function() {
 
     var tableToCSV = function(table) {
         var data = "";
-        var i, j, row, col;
+        var i, j, k, row, col;
 
         for (i = 0; i < table.rows.length; i++) {
             row = table.rows[i];
@@ -143,7 +143,15 @@ ExcellentExport = (function() {
 
                 if(!visibleTdsOnly || row.cells[j].style.display !== "none"){
                     col = row.cells[j];
-                    data = data + (j ? csvDelimiter : '') + fixCSVField(col.textContent.trim());
+
+                    if(col.colSpan > 1){
+                        for(k = 1; k <= col.colSpan; k++){
+                            data += (j ? csvDelimiter : '') + fixCSVField(col.textContent.trim())+" ["+k+"]";
+                        }
+                    }else{
+                        data = data + (j ? csvDelimiter : '') + fixCSVField(col.textContent.trim());
+                    }
+
                 }
 
 
